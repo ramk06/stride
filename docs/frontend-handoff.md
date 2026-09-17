@@ -2,6 +2,16 @@
 
 This repo is a Next.js web prototype used to refine Stride's mobile-first product surface before a dedicated Expo mobile app exists. The UI is real. The data in the fixture layer is sample data only.
 
+## Primary Architecture Reference
+
+The authoritative mobile-first architecture document is `docs/mobile-architecture.md`.
+
+Use that file as the source of truth for:
+- production system boundaries
+- mobile app scope
+- backend responsibilities
+- delivery phases
+
 ## Current Structure
 
 - `src/features/stride/screens/DashboardScreen.tsx`: dashboard surface and runner summary.

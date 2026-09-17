@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "Stride Mobile",
+    "slug": "stride-mobile",
+    "scheme": "stride",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#F4F1EA"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.stride.mobile"
+    },
+    "android": {
+      "package": "com.stride.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#F4F1EA"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-font"
+    ]
+  }
+}

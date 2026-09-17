@@ -33,3 +33,26 @@
 1. It gives you a real end-to-end workflow: create account, enter app, inspect dashboard, log activity, review activity detail, add gear, assign gear, create goal, and revisit data after refresh.
 2. It keeps the UI responsive and mobile-usable while moving the product from static demo behavior to actual persisted behavior.
 3. It creates a clean upgrade path to PostgreSQL, a dedicated backend, and native mobile clients later without discarding the current screen model.
+
+## Mobile Stitch UI Implementation
+
+### What changed
+
+1. Rebuilt the mounted Expo screens for Dashboard, Activities, Gear, and Goals from the supplied Stitch reference layouts.
+2. Replaced the prior beige shared visual system with the Stitch light telemetry palette, compact header, technical labels, telemetry metrics, progress channels, and icon-led bottom navigation.
+3. Added native `@expo/vector-icons` and its Expo SDK-compatible `expo-font` peer dependency for iOS, Android, and web icon rendering.
+4. Extended the mobile view contracts and isolated sample data with the fields required by the telemetry UI, while keeping all screens query-hook-driven.
+5. Preserved the current boundaries: screens render state, hooks source data through TanStack Query, Zustand owns tab and overlay state, and future API services can replace the mock query functions without requiring presentation changes.
+
+### Operating decision
+
+1. Expo must start in offline mode in this environment. Its normal online startup blocks before Metro opens a port because organization network policy prevents Expo's initialization checks from completing.
+2. The mobile `start` and `web` scripts therefore use `--offline`; this serves the app normally on local devices and browsers without requiring external Expo network access.
+3. This is a development-server constraint only. It does not create or imply a fake backend, OAuth flow, Strava sync, or AI integration.
+
+### Verification
+
+1. `npx expo-doctor` passes all checks.
+2. `npm run typecheck` passes.
+3. `npx expo export --platform web` passes.
+4. `npm run web -- --port 8082` starts Metro and serves the Dashboard at `http://localhost:8082/`.
