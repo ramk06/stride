@@ -1,0 +1,61 @@
+{
+  "name": "stride-api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "start": "node --env-file=.env dist/src/main.js",
+    "worker": "node --env-file=.env dist/src/worker.js",
+    "local:services": "node scripts/local-services.mjs",
+    "local:configure": "node scripts/configure-local.mjs",
+    "dev": "tsc -w",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:validate": "prisma validate",
+    "db:seed:demo": "node scripts/seed-demo.mjs",
+    "test": "npm run build && node --test --test-concurrency=1 dist/test/*.test.js",
+    "contracts": "node dist/src/openapi.js",
+    "lint": "eslint src test"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.0",
+    "argon2": "^0.44.0",
+    "jsonwebtoken": "^9.0.2",
+    "@nestjs/core": "^11.1.0",
+    "@nestjs/platform-express": "^11.1.0",
+    "@nestjs/swagger": "^11.2.0",
+    "@nestjs/throttler": "^6.4.0",
+    "@prisma/client": "6.19.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "helmet": "^8.1.0",
+    "luxon": "^3.7.2",
+    "nodemailer": "^10.0.13",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "^11.2.6",
+    "@types/express": "^5.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/luxon": "^3.7.0",
+    "@types/node": "^22.0.0",
+    "@types/nodemailer": "^7.0.0",
+    "@types/supertest": "^6.0.3",
+    "embedded-postgres": "18.4.0-beta.17",
+    "eslint": "^9.0.0",
+    "mailparser": "^3.7.0",
+    "openapi-typescript": "^7.10.0",
+    "prisma": "6.19.0",
+    "smtp-server": "^3.16.0",
+    "supertest": "^7.1.0",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.0.0"
+  },
+  "overrides": {
+    "effect": "^3.22.2",
+    "deepmerge-ts": "^8.0.2",
+    "@nestjs/swagger": { "js-yaml": "^5.4.2" }
+  }
+}

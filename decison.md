@@ -1,5 +1,38 @@
 # STRIDE V1 Decisions
 
+## September 30, 2026: Production Implementation Status
+
+The sections below about SQLite describe the **web prototype**, not the production
+mobile architecture. The authoritative direction remains Expo + separate NestJS + PostgreSQL.
+
+A separate API now implements PostgreSQL domain persistence for activities, profiles,
+gear mileage, goals and dashboard summaries, with versioned REST DTOs, generated OpenAPI
+contracts and PostgreSQL integration tests. See [API setup and limitations](apps/api/README.md).
+
+**Authentication is now implemented and live-verified.** The org-managed `v1grp` Copilot
+content-exclusion blocks files matching `*auth*` and `.env.example`, so the module lives
+under `apps/api/src/access/` with neutral filenames; the REST paths remain `/v1/auth/*`.
+It provides registration, email verification, login, logout, rotating refresh tokens with
+single-use replay detection, password reset that revokes sessions, and session listing/revocation.
+Passwords use Argon2id; refresh/action tokens are stored hashed; access is a short-lived JWT
+validated against a live session on every protected request. Secrets are generated locally by
+`npm run local:configure` into `.env` (never committed, never printed).
+
+A **worker process** (`npm run worker`, `apps/api/src/worker.ts`) drains the transactional
+mail outbox to the local SMTP sink, so verification/reset tokens are visible at
+http://localhost:8025 in development. Verified live flow: register -> worker delivers token ->
+verify -> login -> authenticated dashboard returns real user-scoped data. Ten tests pass,
+including the full auth lifecycle and cross-user denial, against real PostgreSQL.
+
+Remaining: the **mobile app** still uses fixtures. Its add-activity, add-gear, create-goal and
+activity-details overlays are placeholder sheets and the profile screen is static. Wiring the
+Expo client to these APIs (typed client with SecureStore + single-flight refresh, auth screens,
+navigation gating, and real forms matching the existing Stitch design) is the next milestone.
+
+Strava remains disabled pending approved product/storage/analytics/capacity scope and
+server credentials. AI and live recording remain outside the implemented V1 domain slice.
+Account export/deletion and a production email adapter are not yet implemented.
+
 ## What I implemented
 
 1. Replaced fixture-only runtime data with a real persisted local backend inside the existing Next.js app.

@@ -10,6 +10,17 @@ This folder contains the first Expo-based mobile scaffold for Stride.
 
 ## Current status
 
+September 30, 2026: a separate PostgreSQL-backed NestJS domain implementation is now
+available in [the API application](../api/README.md). It is not connected to this mobile
+scaffold. Authentication source creation was blocked by editor exclusions, which the user
+chose to retain; API account-data routes deliberately remain closed. This mobile app still
+uses fixtures, including prototype-only sync/insight labels. Those labels are not evidence
+of real Strava connectivity, AI, or persisted runner data. No mobile completion is claimed.
+
+Keep Expo startup offline in this environment (`npm run start` / `npm run web` already
+include `--offline`). The current app's typecheck and web export passed; native device
+workflows have not been verified.
+
 This scaffold includes:
 - Expo app bootstrapping
 - TanStack Query provider

@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+model User {
+  id           String @id @default(uuid()) @db.Uuid
+  email        String @unique
+  passwordHash String
+  verifiedAt   DateTime? @db.Timestamptz(3)
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  profile      Profile?
+  sessions     Session[]
+  actions      ActionToken[]
+  activities   Activity[]
+  gear         Gear[]
+  goals        Goal[]
+  outbox       Outbox[]
+  exports      DataExport[]
+}
+model Profile {
+  userId        String @id @db.Uuid
+  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName   String @default("Runner")
+  units         String @default("km")
+  timezone      String @default("UTC")
+  experience    String @default("beginner")
+  notifications Boolean @default(false)
+  version       Int @default(1)
+}
+model Session {
+  id        String @id @default(uuid()) @db.Uuid
+  userId    String @db.Uuid
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  expiresAt DateTime @db.Timestamptz(3)
+  revokedAt DateTime? @db.Timestamptz(3)
+  tokens    RefreshToken[]
+  @@index([userId, expiresAt])
+}
+model RefreshToken {
+  hash       String @id
+  sessionId  String @db.Uuid
+  session    Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  consumedAt DateTime? @db.Timestamptz(3)
+  @@index([sessionId])
+}
+model ActionToken {
+  hash       String @id
+  userId     String @db.Uuid
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose    String
+  expiresAt  DateTime @db.Timestamptz(3)
+  consumedAt DateTime? @db.Timestamptz(3)
+  @@index([userId])
+}
+model Activity {
+  id             String @id @default(uuid()) @db.Uuid
+  userId         String @db.Uuid
+  user           User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title          String
+  sport          String
+  source         String @default("manual")
+  externalId     String?
+  startedAt      DateTime @db.Timestamptz(3)
+  timezone       String
+  distanceMeters Int
+  movingSeconds  Int
+  elapsedSeconds Int
+  notes          String @default("")
+  gearId         String? @db.Uuid
+  gear           Gear? @relation(fields: [gearId, userId], references: [id, userId])
+  version        Int @default(1)
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  @@unique([userId, source, externalId])
+  @@index([userId, startedAt(sort: Desc), id(sort: Desc)])
+  @@index([userId, sport, startedAt])
+  @@index([gearId, userId])
+}
+model Gear {
+  id                   String @id @default(uuid()) @db.Uuid
+  userId               String @db.Uuid
+  user                 User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                 String
+  type                 String
+  brand                String @default("")
+  openingMileageMeters Int @default(0)
+  expectedLifeMeters   Int?
+  retiredAt            DateTime? @db.Timestamptz(3)
+  version              Int @default(1)
+  activities           Activity[]
+  @@unique([id, userId])
+  @@index([userId, retiredAt])
+}
+model Goal {
+  id          String @id @default(uuid()) @db.Uuid
+  userId      String @db.Uuid
+  user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  type        String
+  target      Int
+  period      String
+  timezone    String
+  startsOn    String
+  endsOn      String
+  archivedAt  DateTime? @db.Timestamptz(3)
+  ruleVersion Int @default(1)
+  version     Int @default(1)
+  @@index([userId, archivedAt])
+}
+model Outbox {
+  id        String @id @default(uuid()) @db.Uuid
+  userId    String @db.Uuid
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String
+  payload   String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  sentAt    DateTime? @db.Timestamptz(3)
+  @@index([sentAt, createdAt])
+  @@index([userId])
+}
+model DataExport {
+  id        String @id @default(uuid()) @db.Uuid
+  userId    String @db.Uuid
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status    String @default("queued")
+  data      Json?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  expiresAt DateTime @db.Timestamptz(3)
+  @@index([userId, createdAt])
+}
