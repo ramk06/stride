@@ -22,7 +22,7 @@ export interface DashboardSummary {
   averagePace: string;
   durationLabel: string;
   weeklyTargetKm: number;
-  latestWorkout: ActivitySummary;
+  latestWorkout: ActivitySummary | null;
 }
 
 export interface ActivitySummary {

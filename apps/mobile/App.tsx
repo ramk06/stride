@@ -1,14 +1,18 @@
+import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
-import { SafeAreaView } from "react-native";
+import { SafeAreaView, View } from "react-native";
 import { AppProviders } from "./src/providers/app-providers";
 import { StrideMobileApp } from "./src/stride-mobile-app";
+import { colors, fontAssets } from "./src/ui/theme";
 
 export default function App() {
+  const [fontsLoaded] = useFonts(fontAssets);
+
   return (
     <AppProviders>
-      <SafeAreaView style={{ flex: 1, backgroundColor: "#F8F9FF" }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
         <StatusBar style="dark" />
-        <StrideMobileApp />
+        {fontsLoaded ? <StrideMobileApp /> : <View style={{ flex: 1, backgroundColor: colors.background }} />}
       </SafeAreaView>
     </AppProviders>
   );

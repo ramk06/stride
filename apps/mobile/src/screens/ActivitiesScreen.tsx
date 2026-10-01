@@ -1,28 +1,265 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { useMemo, useState } from "react";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { useActivities } from "../hooks/use-stride-data";
-import { PageHeader, PrimaryButton, Screen, appPalette } from "../ui/stride-ui";
+import {
+  AppHeader,
+  AppText,
+  Card,
+  FilterChips,
+  IconBadge,
+  Pill,
+  PrimaryButton,
+  Screen,
+} from "../ui/stride-ui";
+import { colors, radius, space } from "../ui/theme";
 import type { ActivitySummary } from "../types/stride";
 
-export function ActivitiesScreen({ onOpenDetails, onAddActivity }: { onOpenDetails: (activity: ActivitySummary) => void; onAddActivity: () => void }) {
+type FilterId = "all" | "run" | "trail" | "recovery";
+
+export function ActivitiesScreen({
+  onOpenDetails,
+  onAddActivity,
+}: {
+  onOpenDetails: (activity: ActivitySummary) => void;
+  onAddActivity: () => void;
+}) {
   const { data } = useActivities();
-  const [filter, setFilter] = useState("Run");
+  const [filter, setFilter] = useState<FilterId>("all");
   const [query, setQuery] = useState("");
-  const visibleActivities = (data ?? []).filter((activity) => (filter === "All" || activity.category === "RUN") && activity.title.toLowerCase().includes(query.toLowerCase()));
+
+  const activities = data ?? [];
+  const totalKm = activities.reduce((sum, item) => sum + item.distanceKm, 0);
+
+  const visible = useMemo(
+    () =>
+      activities.filter((activity) => {
+        const matchesFilter =
+          filter === "all" ||
+          (filter === "recovery" && activity.category === "EASY BASE") ||
+          (filter !== "recovery" && activity.category === "RUN");
+        return matchesFilter && activity.title.toLowerCase().includes(query.toLowerCase());
+      }),
+    [activities, filter, query],
+  );
+
+  const chips: Array<{ id: FilterId; label: string; icon?: keyof typeof Ionicons.glyphMap }> = [
+    { id: "all", label: `All (${activities.length})` },
+    { id: "run", label: "Run", icon: "walk-outline" },
+    { id: "trail", label: "Trail" },
+    { id: "recovery", label: "Recovery" },
+  ];
 
   return (
     <Screen>
-      <PageHeader title="Activities" />
-      <View><View style={styles.titleRow}><Text style={styles.heading}>Activities</Text><Text style={styles.live}>LIVE LOG</Text></View><Text style={styles.month}><Ionicons name="calendar-outline" size={15} color={appPalette.primary} /> September 2026 · <Text style={styles.primary}>114.8 KM</Text> · 14 Runs</Text></View>
-      <Pressable style={styles.sync}><Ionicons name="flash" size={21} color={appPalette.primary} /><View style={{ flex: 1 }}><Text style={styles.syncTitle}>STRAVA SYNCED <Text style={styles.muted}>• 15 min ago</Text></Text><Text style={styles.muted}>2 new activities imported automatically</Text></View><Ionicons name="sync-outline" size={20} color={appPalette.primary} /></Pressable>
-      <View style={styles.search}><Ionicons name="search-outline" size={22} color={appPalette.muted} /><TextInput value={query} onChangeText={setQuery} placeholder="Search route, title, shoe, location..." placeholderTextColor={appPalette.muted} style={styles.input} /></View>
-      <View style={styles.filters}>{["All", "Run", "Trail Run", "Recovery"].map((item) => <Pressable key={item} onPress={() => setFilter(item)} style={[styles.filter, filter === item && styles.filterActive]}><Text style={[styles.filterText, filter === item && styles.filterTextActive]}>{item.toUpperCase()} {item === "All" ? "(17)" : item === "Run" ? "(12)" : "(2)"}</Text></Pressable>)}</View>
-      {visibleActivities.map((activity, index) => <View key={activity.id} style={styles.group}><View style={styles.dateRow}><Text style={styles.date}><Text style={styles.dateDot}>●</Text> {index === 0 ? "Yesterday" : index === 1 ? "Sunday" : "Thursday"} <Text style={styles.dateSmall}>· SEP {index === 0 ? "18" : index === 1 ? "15" : "12"}</Text></Text><Text style={styles.muted}>{index === 0 ? "1 Session" : index === 1 ? "Long Run Target" : "Recovery"}</Text></View><Pressable onPress={() => onOpenDetails(activity)} style={styles.activityCard}><View style={styles.activityTop}><View style={styles.activityIcon}><Ionicons name={index === 1 ? "trail-sign-outline" : "speedometer-outline"} size={25} color={index === 1 ? appPalette.accent : appPalette.primary} /></View><View style={{ flex: 1 }}><Text numberOfLines={1} style={styles.activityTitle}>{activity.title}</Text><Text style={styles.category}>{activity.category} <Text style={styles.muted}>· {activity.location} · {activity.dateLabel}</Text></Text></View>{index === 0 ? <Text style={styles.imported}>STRAVA</Text> : null}</View><View style={styles.activityMetrics}><Data label="DISTANCE" value={`${activity.distanceKm}`} unit="km" /><Data label="DURATION" value={activity.durationLabel} /><Data label="AVG PACE" value={activity.paceLabel.replace(" /km", "")} unit="/km" /></View><View style={styles.activityFoot}><Text style={styles.muted}>♡ {activity.heartRate} bpm  △ {activity.elevationGainM} m gain</Text><Text style={styles.muted}>{activity.gearName}</Text></View></Pressable></View>)}
-      <PrimaryButton label="Log manual run" onPress={onAddActivity} />
+      <AppHeader title="Activities" />
+
+      <View style={styles.titleBlock}>
+        <View style={styles.rowBetween}>
+          <AppText variant="headlineMd">Activities</AppText>
+          <Pill label="Live log" tone="primary" />
+        </View>
+        <View style={styles.monthRow}>
+          <Ionicons name="calendar-outline" size={15} color={colors.primary} />
+          <AppText variant="bodySm" color={colors.secondary}>
+            This month ·{" "}
+          </AppText>
+          <AppText variant="labelCaps" color={colors.primary}>
+            {totalKm.toFixed(1)} km
+          </AppText>
+          <AppText variant="bodySm" color={colors.secondary}>
+            {" "}
+            · {activities.length} runs
+          </AppText>
+        </View>
+      </View>
+
+      <Card style={styles.syncBanner}>
+        <View style={styles.syncIcon}>
+          <Ionicons name="flash" size={18} color={colors.primary} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <AppText variant="labelCaps" color={colors.onSurface}>
+            Strava synced · 15m ago
+          </AppText>
+          <AppText variant="bodySm" color={colors.secondary} numberOfLines={1}>
+            New activities import automatically
+          </AppText>
+        </View>
+        <Ionicons name="sync-outline" size={20} color={colors.primary} />
+      </Card>
+
+      <View style={styles.search}>
+        <Ionicons name="search-outline" size={20} color={colors.secondary} />
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search route, title, shoe, location..."
+          placeholderTextColor={colors.secondary}
+          style={styles.searchInput}
+        />
+      </View>
+
+      <FilterChips chips={chips} value={filter} onChange={setFilter} />
+
+      {visible.length === 0 ? (
+        <Card>
+          <AppText variant="headlineSm">No activities found</AppText>
+          <AppText variant="bodySm" color={colors.secondary}>
+            Try a different filter or log a manual run.
+          </AppText>
+        </Card>
+      ) : (
+        visible.map((activity) => (
+          <Pressable key={activity.id} onPress={() => onOpenDetails(activity)}>
+            <Card style={styles.activityCard}>
+              <View style={styles.activityTop}>
+                <IconBadge
+                  icon={activity.category === "EASY BASE" ? "leaf-outline" : "speedometer-outline"}
+                  bg={activity.category === "EASY BASE" ? colors.secondaryContainer : colors.primaryFixed}
+                  fg={activity.category === "EASY BASE" ? colors.secondary : colors.primary}
+                />
+                <View style={{ flex: 1 }}>
+                  <AppText variant="headlineSm" numberOfLines={1}>
+                    {activity.title}
+                  </AppText>
+                  <View style={styles.metaRow}>
+                    <Pill
+                      label={activity.category}
+                      tone={activity.category === "EASY BASE" ? "neutral" : "primary"}
+                    />
+                    <AppText variant="caption" color={colors.secondary} numberOfLines={1} style={{ flex: 1 }}>
+                      {activity.location} · {activity.dateLabel}
+                    </AppText>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.bento}>
+                <Bento label="Distance" value={`${activity.distanceKm}`} unit="km" />
+                <Bento label="Duration" value={activity.durationLabel} />
+                <Bento label="Avg pace" value={activity.paceLabel.replace(" /km", "")} color={colors.primary} unit="/km" />
+              </View>
+
+              <View style={styles.footRow}>
+                <View style={styles.inlineIcon}>
+                  <Ionicons name="heart-outline" size={15} color={colors.error} />
+                  <AppText variant="bodySm" color={colors.onSurfaceVariant}>
+                    {activity.heartRate ? `${activity.heartRate} bpm` : "— bpm"}
+                  </AppText>
+                  <Ionicons name="trending-up-outline" size={15} color={colors.tertiary} style={{ marginLeft: 8 }} />
+                  <AppText variant="bodySm" color={colors.onSurfaceVariant}>
+                    {activity.elevationGainM ? `${activity.elevationGainM} m` : "— m"}
+                  </AppText>
+                </View>
+                <View style={styles.inlineIcon}>
+                  <Ionicons name="footsteps-outline" size={15} color={colors.secondary} />
+                  <AppText variant="caption" color={colors.secondary} numberOfLines={1}>
+                    {activity.gearName}
+                  </AppText>
+                </View>
+              </View>
+            </Card>
+          </Pressable>
+        ))
+      )}
+
+      <PrimaryButton label="Log manual run" onPress={onAddActivity} icon="add" />
     </Screen>
   );
 }
 
-function Data({ label, value, unit }: { label: string; value: string; unit?: string }) { return <View><Text style={styles.dataLabel}>{label}</Text><Text style={styles.dataValue}>{value}<Text style={styles.unit}>{unit}</Text></Text></View>; }
-const styles = StyleSheet.create({ titleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" }, heading: { color: appPalette.text, fontSize: 29, fontWeight: "700" }, live: { color: appPalette.primary, backgroundColor: "#FFF0EB", borderRadius: 999, fontSize: 10, fontWeight: "700", letterSpacing: 1, paddingHorizontal: 8, paddingVertical: 5 }, month: { color: appPalette.muted, fontSize: 15, marginTop: 5 }, primary: { color: appPalette.primary, fontWeight: "700" }, sync: { alignItems: "center", backgroundColor: appPalette.surface, borderRadius: 16, flexDirection: "row", gap: 10, padding: 12 }, syncTitle: { color: appPalette.text, fontSize: 11, fontWeight: "700", letterSpacing: 1 }, muted: { color: appPalette.muted, fontSize: 13 }, search: { alignItems: "center", backgroundColor: appPalette.surface, borderRadius: 14, flexDirection: "row", gap: 9, paddingHorizontal: 14 }, input: { color: appPalette.text, flex: 1, fontSize: 16, paddingVertical: 13 }, filters: { flexDirection: "row", gap: 7 }, filter: { backgroundColor: appPalette.surface, borderRadius: 999, paddingHorizontal: 11, paddingVertical: 7 }, filterActive: { backgroundColor: appPalette.text }, filterText: { color: appPalette.muted, fontSize: 10, fontWeight: "700", letterSpacing: .8 }, filterTextActive: { color: "#FFFFFF" }, group: { gap: 8 }, dateRow: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" }, date: { color: appPalette.text, fontSize: 21, fontWeight: "700" }, dateDot: { color: appPalette.primary, fontSize: 12 }, dateSmall: { color: appPalette.muted, fontSize: 11, letterSpacing: 1 }, activityCard: { backgroundColor: appPalette.surface, borderRadius: 18, overflow: "hidden", paddingTop: 15 }, activityTop: { alignItems: "center", flexDirection: "row", gap: 11, paddingHorizontal: 14 }, activityIcon: { alignItems: "center", backgroundColor: appPalette.surfaceMuted, borderRadius: 12, height: 49, justifyContent: "center", width: 49 }, activityTitle: { color: appPalette.text, fontSize: 21, fontWeight: "600" }, category: { color: appPalette.primary, fontSize: 11, fontWeight: "700", marginTop: 4, letterSpacing: .7 }, imported: { color: appPalette.primary, fontSize: 11, fontWeight: "700" }, activityMetrics: { backgroundColor: appPalette.surfaceMuted, borderRadius: 13, flexDirection: "row", justifyContent: "space-between", margin: 14, padding: 12 }, dataLabel: { color: appPalette.muted, fontSize: 10, fontWeight: "700", letterSpacing: .7 }, dataValue: { color: appPalette.text, fontSize: 22, fontWeight: "700", marginTop: 4 }, unit: { color: appPalette.muted, fontSize: 11, fontWeight: "400" }, activityFoot: { borderTopColor: appPalette.surfaceMuted, borderTopWidth: 1, gap: 5, padding: 12 } });
+function Bento({ label, value, unit, color = colors.onSurface }: { label: string; value: string; unit?: string; color?: string }) {
+  return (
+    <View style={{ gap: 2 }}>
+      <AppText variant="labelCaps" color={colors.secondary}>
+        {label}
+      </AppText>
+      <AppText variant="telemetry" color={color}>
+        {value}
+        {unit ? (
+          <AppText variant="caption" color={colors.secondary}>
+            {" "}
+            {unit}
+          </AppText>
+        ) : null}
+      </AppText>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  titleBlock: {
+    gap: 6,
+  },
+  rowBetween: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  monthRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  syncBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.sm,
+  },
+  syncIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.lg,
+    backgroundColor: colors.primaryFixed,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  search: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+    backgroundColor: colors.surfaceLowest,
+    borderRadius: radius.xl,
+    paddingHorizontal: 14,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 13,
+    fontFamily: "Hanken-Regular",
+    fontSize: 15,
+    color: colors.onSurface,
+  },
+  activityCard: {
+    gap: space.md,
+  },
+  activityTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.md,
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 4,
+  },
+  bento: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    backgroundColor: colors.surfaceLow,
+    borderRadius: radius.xl,
+    padding: space.md,
+  },
+  footRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: space.sm,
+  },
+  inlineIcon: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    flexShrink: 1,
+  },
+});

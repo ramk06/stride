@@ -1,10 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { ActivitiesScreen } from "./screens/ActivitiesScreen";
 import { DashboardScreen } from "./screens/DashboardScreen";
 import { GearScreen } from "./screens/GearScreen";
 import { GoalsScreen } from "./screens/GoalsScreen";
-import { OverlayScreen } from "./screens/OverlayScreen";
+import { LoginScreen, OverlayScreen } from "./screens/OverlayScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
 import { useAppStore } from "./state/app-store";
 import type { ActivitySummary } from "./types/stride";
@@ -16,9 +16,19 @@ export function StrideMobileApp() {
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const openOverlay = useAppStore((state) => state.openOverlay);
   const closeOverlay = useAppStore((state) => state.closeOverlay);
+  const session = useAppStore((state) => state.session);
+  const sessionHydrated = useAppStore((state) => state.sessionHydrated);
+  const restoreSession = useAppStore((state) => state.restoreSession);
   const [selectedActivity, setSelectedActivity] = useState<ActivitySummary | null>(null);
 
-  const content = useMemo(() => {
+  useEffect(() => {
+    void restoreSession();
+  }, [restoreSession]);
+
+  if (!sessionHydrated) return <View style={{ flex: 1 }} />;
+  if (!session) return <LoginScreen />;
+
+  const content = (() => {
     switch (activeTab) {
       case "dashboard":
         return (
@@ -46,7 +56,7 @@ export function StrideMobileApp() {
       default:
         return null;
     }
-  }, [activeTab, openOverlay, setActiveTab]);
+  })();
 
   return (
     <View style={{ flex: 1 }}>

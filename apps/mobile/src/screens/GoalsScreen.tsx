@@ -1,26 +1,241 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { useGoals } from "../hooks/use-stride-data";
-import { PageHeader, PrimaryButton, Screen, appPalette } from "../ui/stride-ui";
+import {
+  AppHeader,
+  AppText,
+  Card,
+  IconBadge,
+  Pill,
+  PillButton,
+  PrimaryButton,
+  ProgressBar,
+  SegmentedTabs,
+} from "../ui/stride-ui";
+import { Screen } from "../ui/stride-ui";
+import { colors, radius, space } from "../ui/theme";
+import type { GoalSummary } from "../types/stride";
+
+type TabId = "active" | "completed";
 
 export function GoalsScreen({ onCreateGoal }: { onCreateGoal: () => void }) {
   const { data } = useGoals();
-  const [active, setActive] = useState(true);
-  const goal = data?.[0];
+  const [tab, setTab] = useState<TabId>("active");
 
-  if (!goal) return null;
+  const goals = data ?? [];
 
   return (
     <Screen>
-      <PageHeader title="Goals" />
-      <View style={styles.titleRow}><View><Text style={styles.label}>TARGETS & TELEMETRY</Text><Text style={styles.heading}>Target Matrix</Text></View><Pressable onPress={onCreateGoal} style={styles.add}><Ionicons name="add" size={22} color="#FFFFFF" /><Text style={styles.addText}>New Goal</Text></Pressable></View>
-      <View style={styles.segment}><Pressable onPress={() => setActive(true)} style={[styles.segmentItem, active && styles.segmentActive]}><Text style={[styles.segmentText, active && styles.segmentTextActive]}>Active Goals (2)</Text></Pressable><Pressable onPress={() => setActive(false)} style={[styles.segmentItem, !active && styles.segmentActive]}><Text style={[styles.segmentText, !active && styles.segmentTextActive]}>Completed (4)</Text></Pressable></View>
-      {active ? <><View style={styles.goalCard}><View style={styles.goalMeta}><View style={styles.raceBadge}><Ionicons name="flag" size={13} color="#FFFFFF" /><Text style={styles.raceText}>RACE TARGET</Text></View><Text style={styles.priority}>A-Priority</Text><Text style={styles.days}>◷ {goal.daysRemaining} Days Left</Text></View><View style={styles.goalTitle}><View style={styles.raceIcon}><Ionicons name="flag-outline" size={29} color={appPalette.primary} /></View><View style={{ flex: 1 }}><Text style={styles.goalName}>{goal.title} 2026</Text><Text style={styles.muted}>{goal.targetDate} · Road Stage</Text></View></View><View style={styles.metrics}><Metric label="DISTANCE" value={`${goal.targetKm}`} unit="KM" /><Metric label="TARGET TIME" value="1:45:00" /><Metric label="TARGET PACE" value={goal.targetPace} unit="/KM" primary /></View><View style={styles.readiness}><View style={styles.readinessRow}><Text style={styles.strong}>Longest Training Run: {goal.currentKm} km</Text><Text style={styles.ready}>{goal.progressPercent}% Ready</Text></View><View style={styles.track}><View style={[styles.fill, { width: `${goal.progressPercent}%` }]} /></View></View><View style={styles.adherence}><Ionicons name="calendar-outline" size={22} color={appPalette.accent} /><Text style={styles.strong}>Weekly adherence: <Text style={{ color: appPalette.accent }}>4 of 4</Text> runs completed</Text></View><Pressable style={styles.details}><Text style={styles.detailsText}>View Goal Details & Milestones</Text><Ionicons name="arrow-forward" size={20} color={appPalette.text} /></Pressable></View><View style={styles.volume}><View style={styles.volumeTop}><Text style={styles.volumeBadge}>VOLUME</Text><Text style={styles.muted}>Sep Cycle</Text><Text style={styles.muted}>Sep 30 (11 Days Left)</Text></View><View style={styles.volumeData}><View><Text style={styles.volumeTitle}>Monthly Mileage: 120 km</Text><Text style={styles.muted}>Target: 120.0 km total</Text></View><Text style={styles.bigNumber}>84.2</Text></View><View style={styles.track}><View style={[styles.fill, { width: "70%" }]} /></View><View style={styles.readinessRow}><Text style={styles.muted}>70% Achieved</Text><Text style={styles.ready}>35.8 km remaining</Text></View></View><View style={styles.streak}><Ionicons name="flame-outline" size={27} color={appPalette.primary} /><View><Text style={styles.streakTitle}>Streak: 12 Weeks Consistent</Text><Text style={styles.muted}>You are hitting 94% of planned targets this quarter.</Text></View></View><View style={styles.milestoneHeader}><Text style={styles.label}>RECENT MILESTONES COMPLETED</Text><Text style={styles.ready}>View All (4)</Text></View>{["Sub-22min 5K", "Run 100 km in August"].map((item) => <View key={item} style={styles.milestone}><Ionicons name="trophy-outline" size={25} color={appPalette.primary} /><View><Text style={styles.strong}>{item}</Text><Text style={styles.muted}>Completed Aug 14 · Official Time: 21:44</Text></View></View>)}</> : <View style={styles.empty}><Ionicons name="checkmark-circle-outline" size={40} color={appPalette.accent} /><Text style={styles.goalName}>Four goals complete</Text><Text style={styles.muted}>Your completed targets are ready for review.</Text></View>}
-      <PrimaryButton label="Create goal" onPress={onCreateGoal} />
+      <AppHeader title="Goals" />
+
+      <View style={styles.titleRow}>
+        <View style={{ flex: 1 }}>
+          <AppText variant="labelCaps" color={colors.secondary}>
+            Targets & telemetry
+          </AppText>
+          <AppText variant="headlineLg">Target Matrix</AppText>
+        </View>
+        <PillButton label="New Goal" icon="add" onPress={onCreateGoal} />
+      </View>
+
+      <SegmentedTabs
+        value={tab}
+        onChange={setTab}
+        tabs={[
+          { id: "active", label: `Active (${goals.length})` },
+          { id: "completed", label: "Completed (0)" },
+        ]}
+      />
+
+      {tab === "active" ? (
+        goals.length === 0 ? (
+          <Card>
+            <AppText variant="headlineSm">No active goals</AppText>
+            <AppText variant="bodySm" color={colors.secondary}>
+              Lock a race target or a volume goal to sync your plan.
+            </AppText>
+          </Card>
+        ) : (
+          <>
+            {goals.map((goal, index) => (
+              <GoalCard key={goal.id} goal={goal} volume={index % 2 === 1} />
+            ))}
+            <Card style={styles.streak}>
+              <View style={styles.streakIcon}>
+                <Ionicons name="flame" size={20} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <AppText variant="headlineSm" style={{ fontSize: 15 }}>
+                  Consistency streak
+                </AppText>
+                <AppText variant="bodySm" color={colors.onSurfaceVariant}>
+                  Keep logging to build a verified streak across the quarter.
+                </AppText>
+              </View>
+            </Card>
+          </>
+        )
+      ) : (
+        <Card>
+          <AppText variant="headlineSm">No completed goals yet</AppText>
+          <AppText variant="bodySm" color={colors.secondary}>
+            Finished targets and milestones will be celebrated here.
+          </AppText>
+        </Card>
+      )}
+
+      <PrimaryButton label="Create goal" onPress={onCreateGoal} icon="add" />
     </Screen>
   );
 }
 
-function Metric({ label, value, unit, primary }: { label: string; value: string; unit?: string; primary?: boolean }) { return <View><Text style={styles.label}>{label}</Text><Text style={[styles.metricValue, primary && { color: appPalette.primary }]}>{value}<Text style={styles.unit}>{unit}</Text></Text></View>; }
-const styles = StyleSheet.create({ titleRow: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" }, label: { color: appPalette.muted, fontSize: 10, fontWeight: "700", letterSpacing: 1.2 }, heading: { color: appPalette.text, fontSize: 32, fontWeight: "700" }, add: { alignItems: "center", backgroundColor: appPalette.primary, borderRadius: 999, flexDirection: "row", gap: 5, paddingHorizontal: 15, paddingVertical: 12 }, addText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" }, segment: { backgroundColor: "#D3E4FE", borderRadius: 999, flexDirection: "row", padding: 3 }, segmentItem: { alignItems: "center", borderRadius: 999, flex: 1, paddingVertical: 8 }, segmentActive: { backgroundColor: appPalette.surface }, segmentText: { color: appPalette.muted, fontSize: 12, fontWeight: "700", letterSpacing: .8 }, segmentTextActive: { color: appPalette.primary }, goalCard: { backgroundColor: appPalette.surface, borderRadius: 18, gap: 15, padding: 16 }, goalMeta: { alignItems: "center", flexDirection: "row", gap: 7 }, raceBadge: { alignItems: "center", backgroundColor: appPalette.primary, borderRadius: 999, flexDirection: "row", gap: 3, paddingHorizontal: 8, paddingVertical: 5 }, raceText: { color: "#FFFFFF", fontSize: 10, fontWeight: "700" }, priority: { color: appPalette.muted, fontSize: 12, fontWeight: "700" }, days: { color: appPalette.primary, fontSize: 11, fontWeight: "700", marginLeft: "auto" }, goalTitle: { alignItems: "center", flexDirection: "row", gap: 12 }, raceIcon: { alignItems: "center", backgroundColor: "#FFF0EB", borderRadius: 12, height: 64, justifyContent: "center", width: 64 }, goalName: { color: appPalette.text, fontSize: 22, fontWeight: "600" }, muted: { color: appPalette.muted, fontSize: 13, lineHeight: 19 }, metrics: { backgroundColor: appPalette.surfaceMuted, borderRadius: 12, flexDirection: "row", justifyContent: "space-between", padding: 12 }, metricValue: { color: appPalette.text, fontSize: 22, fontWeight: "700", marginTop: 4 }, unit: { color: appPalette.muted, fontSize: 11, fontWeight: "400" }, readiness: { gap: 8 }, readinessRow: { flexDirection: "row", justifyContent: "space-between" }, strong: { color: appPalette.text, fontSize: 14, fontWeight: "600" }, ready: { color: appPalette.primary, fontSize: 12, fontWeight: "700", letterSpacing: .5 }, track: { backgroundColor: "#D3E4FE", borderRadius: 99, height: 9, overflow: "hidden" }, fill: { backgroundColor: appPalette.primary, borderRadius: 99, height: "100%" }, adherence: { alignItems: "center", flexDirection: "row", gap: 8 }, details: { alignItems: "center", backgroundColor: "#DCE9FF", borderRadius: 11, flexDirection: "row", justifyContent: "center", gap: 6, paddingVertical: 13 }, detailsText: { color: appPalette.text, fontSize: 16, fontWeight: "600" }, volume: { backgroundColor: appPalette.surface, borderRadius: 18, gap: 12, padding: 16 }, volumeTop: { alignItems: "center", flexDirection: "row", gap: 8, justifyContent: "space-between" }, volumeBadge: { backgroundColor: appPalette.accent, borderRadius: 999, color: "#FFFFFF", fontSize: 10, fontWeight: "700", paddingHorizontal: 8, paddingVertical: 4 }, volumeData: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" }, volumeTitle: { color: appPalette.text, fontSize: 19, fontWeight: "600" }, bigNumber: { color: appPalette.text, fontSize: 46, fontWeight: "700" }, streak: { alignItems: "center", backgroundColor: "#DCE9FF", borderRadius: 16, flexDirection: "row", gap: 14, padding: 17 }, streakTitle: { color: appPalette.text, fontSize: 21, fontWeight: "600" }, milestoneHeader: { flexDirection: "row", justifyContent: "space-between" }, milestone: { alignItems: "center", backgroundColor: appPalette.surface, borderRadius: 12, flexDirection: "row", gap: 12, padding: 13 }, empty: { alignItems: "center", backgroundColor: appPalette.surface, borderRadius: 16, gap: 8, padding: 32 } });
+function GoalCard({ goal, volume }: { goal: GoalSummary; volume: boolean }) {
+  return (
+    <Card style={styles.goalCard}>
+      <View style={styles.rowBetween}>
+        <View style={styles.badgeRow}>
+          <Pill label={volume ? "Volume" : "Race target"} tone={volume ? "tertiary" : "primary"} icon={volume ? "speedometer" : "flag"} />
+          <AppText variant="labelCaps" color={colors.secondary}>
+            {volume ? "Cycle" : "A-priority"}
+          </AppText>
+        </View>
+        <View style={styles.daysPill}>
+          <Ionicons name="timer-outline" size={14} color={colors.primary} />
+          <AppText variant="labelCaps" color={colors.primary}>
+            {goal.daysRemaining} days left
+          </AppText>
+        </View>
+      </View>
+
+      <View style={styles.goalTitle}>
+        <IconBadge icon={volume ? "speedometer-outline" : "flag-outline"} bg={volume ? colors.tertiaryFixed : colors.primaryFixed} fg={volume ? colors.tertiary : colors.primary} size={48} />
+        <View style={{ flex: 1 }}>
+          <AppText variant="headlineSm" numberOfLines={1}>
+            {goal.title}
+          </AppText>
+          <AppText variant="bodySm" color={colors.secondary}>
+            Ends {goal.targetDate}
+          </AppText>
+        </View>
+      </View>
+
+      <View style={styles.metrics}>
+        <Metric label="Distance" value={`${goal.targetKm}`} unit="km" />
+        <Metric label="Current" value={`${goal.currentKm}`} unit="km" />
+        <Metric label="Target pace" value={goal.targetPace} color={colors.primary} />
+      </View>
+
+      <View style={styles.readiness}>
+        <View style={styles.rowBetween}>
+          <AppText variant="bodySm" color={colors.onSurface} style={styles.semibold}>
+            Progress: {goal.currentKm} km
+          </AppText>
+          <AppText variant="labelCaps" color={colors.primary}>
+            {goal.progressPercent}% ready
+          </AppText>
+        </View>
+        <ProgressBar percent={goal.progressPercent} height={10} />
+      </View>
+
+      <Pressable style={styles.cta}>
+        <AppText variant="bodyMd" color={colors.onSurface} style={styles.semibold}>
+          View goal details & milestones
+        </AppText>
+        <Ionicons name="arrow-forward" size={16} color={colors.onSurface} />
+      </Pressable>
+    </Card>
+  );
+}
+
+function Metric({ label, value, unit, color = colors.onSurface }: { label: string; value: string; unit?: string; color?: string }) {
+  return (
+    <View style={{ gap: 2 }}>
+      <AppText variant="labelCaps" color={colors.secondary}>
+        {label}
+      </AppText>
+      <AppText variant="telemetry" color={color}>
+        {value}
+        {unit ? (
+          <AppText variant="caption" color={colors.secondary}>
+            {" "}
+            {unit}
+          </AppText>
+        ) : null}
+      </AppText>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: space.sm,
+  },
+  goalCard: {
+    gap: space.md,
+  },
+  rowBetween: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: space.sm,
+  },
+  badgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  daysPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: colors.surfaceLow,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  goalTitle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.md,
+  },
+  metrics: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    backgroundColor: colors.surfaceLow,
+    borderRadius: radius.lg,
+    padding: space.md,
+  },
+  readiness: {
+    gap: space.sm,
+  },
+  semibold: {
+    fontFamily: "Hanken-SemiBold",
+  },
+  cta: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: colors.surfaceContainer,
+    borderRadius: radius.lg,
+    paddingVertical: 12,
+  },
+  streak: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.md,
+    backgroundColor: colors.surfaceContainer,
+  },
+  streakIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.surfaceLowest,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});

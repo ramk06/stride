@@ -1,117 +1,242 @@
-import { PropsWithChildren } from "react";
+import { PropsWithChildren, ReactNode } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import {
-  SafeAreaView,
   Pressable,
+  SafeAreaView,
   ScrollView,
+  StyleProp,
   StyleSheet,
   Text,
+  TextProps,
+  TextStyle,
   View,
+  ViewStyle,
 } from "react-native";
 import type { TabId } from "../types/stride";
+import { useAppStore } from "../state/app-store";
+import { colors, radius, space, type as typePresets } from "./theme";
 
-const palette = {
-  background: "#F8F9FF",
-  surface: "#FFFFFF",
-  surfaceMuted: "#EFF4FF",
-  surfaceHigh: "#DCE9FF",
-  border: "#E5EEFF",
-  text: "#0B1C30",
-  muted: "#565E74",
-  primary: "#AA3000",
-  primaryFixed: "#FFDBD0",
-  accent: "#006194",
-};
+type Variant = keyof typeof typePresets;
+
+export function AppText({
+  variant = "bodyMd",
+  color = colors.onSurface,
+  style,
+  children,
+  ...rest
+}: TextProps & { variant?: Variant; color?: string; style?: StyleProp<TextStyle>; children?: ReactNode }) {
+  return (
+    <Text {...rest} style={[typePresets[variant] as TextStyle, { color }, style]}>
+      {children}
+    </Text>
+  );
+}
 
 export function Screen({ children }: PropsWithChildren) {
-  return <ScrollView style={styles.screen} contentContainerStyle={styles.screenContent} showsVerticalScrollIndicator={false}>{children}</ScrollView>;
-}
-
-export function PageHeader({ title }: { title: string }) {
   return (
-    <View style={styles.pageHeader}>
-      <Text style={styles.brand}>STRIDE</Text>
-      <View style={styles.pageHeaderRight}>
-        <Text style={styles.pageTitle}>{title}</Text>
-        <View style={styles.avatar}><Text style={styles.avatarText}>RT</Text></View>
-      </View>
-    </View>
-  );
-}
-
-export function HeroCard({ title, subtitle, children }: PropsWithChildren<{ title: string; subtitle: string }>) {
-  return (
-    <View style={styles.heroCard}>
-      <Text style={styles.eyebrow}>STRIDE</Text>
-      <Text style={styles.heroTitle}>{title}</Text>
-      <Text style={styles.heroSubtitle}>{subtitle}</Text>
-      <View style={styles.heroBody}>{children}</View>
-    </View>
-  );
-}
-
-export function SectionCard({ title, actionLabel, onPress, children }: PropsWithChildren<{ title: string; actionLabel?: string; onPress?: () => void }>) {
-  return (
-    <View style={styles.sectionCard}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        {actionLabel && onPress ? (
-          <Pressable onPress={onPress}>
-            <Text style={styles.sectionAction}>{actionLabel}</Text>
-          </Pressable>
-        ) : null}
-      </View>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.screenContent} showsVerticalScrollIndicator={false}>
       {children}
-    </View>
+    </ScrollView>
   );
 }
 
-export function StatRow({ label, value }: { label: string; value: string }) {
+export function AppHeader({ title }: { title: string }) {
   return (
-    <View style={styles.statRow}>
-      <Text style={styles.statLabel}>{label}</Text>
-      <Text style={styles.statValue}>{value}</Text>
-    </View>
-  );
-}
-
-export function ListItem({ title, subtitle, value, onPress }: { title: string; subtitle: string; value?: string; onPress?: () => void }) {
-  return (
-    <Pressable onPress={onPress} style={styles.listItem}>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.listTitle}>{title}</Text>
-        <Text style={styles.listSubtitle}>{subtitle}</Text>
+    <View style={styles.header}>
+      <AppText variant="headlineSm" style={styles.brand}>
+        STRIDE
+      </AppText>
+      <View style={styles.headerRight}>
+        <AppText variant="headlineSm">{title}</AppText>
+        <Pressable
+          accessibilityLabel="Open profile"
+          onPress={() => useAppStore.getState().setActiveTab("profile")}
+          style={styles.avatar}
+        >
+          <AppText variant="labelCaps" color={colors.primary}>
+            RT
+          </AppText>
+        </Pressable>
       </View>
-      {value ? <Text style={styles.listValue}>{value}</Text> : null}
+    </View>
+  );
+}
+
+export function Card({ children, style }: PropsWithChildren<{ style?: StyleProp<ViewStyle> }>) {
+  return <View style={[styles.card, style]}>{children}</View>;
+}
+
+type Tone = "primary" | "tertiary" | "neutral" | "warning" | "strava" | "dark";
+
+const toneStyles: Record<Tone, { bg: string; fg: string }> = {
+  primary: { bg: colors.primaryFixed, fg: colors.primary },
+  tertiary: { bg: colors.tertiaryFixed, fg: colors.tertiary },
+  neutral: { bg: colors.surfaceContainer, fg: colors.secondary },
+  warning: { bg: colors.warningSurface, fg: colors.warningText },
+  strava: { bg: colors.stravaSurface, fg: colors.strava },
+  dark: { bg: colors.onSurface, fg: colors.white },
+};
+
+export function Pill({ label, tone = "neutral", icon }: { label: string; tone?: Tone; icon?: keyof typeof Ionicons.glyphMap }) {
+  const palette = toneStyles[tone];
+  return (
+    <View style={[styles.pill, { backgroundColor: palette.bg }]}>
+      {icon ? <Ionicons name={icon} size={12} color={palette.fg} /> : null}
+      <AppText variant="labelCaps" color={palette.fg} style={styles.pillText}>
+        {label}
+      </AppText>
+    </View>
+  );
+}
+
+export function ProgressBar({
+  percent,
+  color = colors.primary,
+  track = colors.surfaceHigh,
+  height = 8,
+}: {
+  percent: number;
+  color?: string;
+  track?: string;
+  height?: number;
+}) {
+  const clamped = Math.max(0, Math.min(100, percent));
+  return (
+    <View style={[styles.track, { backgroundColor: track, height, borderRadius: height }]}>
+      <View style={{ width: `${clamped}%`, height: "100%", backgroundColor: color, borderRadius: height }} />
+    </View>
+  );
+}
+
+export function SectionHeader({ title, actionLabel, onPress }: { title: string; actionLabel?: string; onPress?: () => void }) {
+  return (
+    <View style={styles.sectionHeader}>
+      <AppText variant="headlineSm" color={colors.onSurface} style={styles.sectionTitle}>
+        {title}
+      </AppText>
+      {actionLabel ? (
+        <Pressable onPress={onPress} hitSlop={8} style={styles.sectionAction}>
+          <AppText variant="labelCaps" color={colors.primary}>
+            {actionLabel}
+          </AppText>
+          <Ionicons name="chevron-forward" size={15} color={colors.primary} />
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+export function SegmentedTabs<T extends string>({
+  tabs,
+  value,
+  onChange,
+}: {
+  tabs: Array<{ id: T; label: string }>;
+  value: T;
+  onChange: (id: T) => void;
+}) {
+  return (
+    <View style={styles.segment}>
+      {tabs.map((tab) => {
+        const active = tab.id === value;
+        return (
+          <Pressable key={tab.id} onPress={() => onChange(tab.id)} style={[styles.segmentItem, active && styles.segmentItemActive]}>
+            <AppText variant="labelCaps" color={active ? colors.primary : colors.secondary}>
+              {tab.label}
+            </AppText>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+export function FilterChips<T extends string>({
+  chips,
+  value,
+  onChange,
+}: {
+  chips: Array<{ id: T; label: string; icon?: keyof typeof Ionicons.glyphMap }>;
+  value: T;
+  onChange: (id: T) => void;
+}) {
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+      {chips.map((chip) => {
+        const active = chip.id === value;
+        return (
+          <Pressable key={chip.id} onPress={() => onChange(chip.id)} style={[styles.chip, active ? styles.chipActive : null]}>
+            {chip.icon ? <Ionicons name={chip.icon} size={13} color={active ? colors.white : colors.secondary} /> : null}
+            <AppText variant="labelCaps" color={active ? colors.white : colors.secondary}>
+              {chip.label}
+            </AppText>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+export function IconBadge({
+  icon,
+  bg = colors.surfaceHigh,
+  fg = colors.secondary,
+  size = 40,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  bg?: string;
+  fg?: string;
+  size?: number;
+}) {
+  return (
+    <View style={{ width: size, height: size, borderRadius: radius.xl, backgroundColor: bg, alignItems: "center", justifyContent: "center" }}>
+      <Ionicons name={icon} size={size * 0.55} color={fg} />
+    </View>
+  );
+}
+
+export function PrimaryButton({ label, onPress, icon }: { label: string; onPress: () => void; icon?: keyof typeof Ionicons.glyphMap }) {
+  return (
+    <Pressable onPress={onPress} style={styles.primaryButton}>
+      <AppText variant="headlineSm" color={colors.onPrimary}>
+        {label}
+      </AppText>
+      {icon ? <Ionicons name={icon} size={18} color={colors.onPrimary} /> : null}
     </Pressable>
   );
 }
 
-export function PrimaryButton({ label, onPress }: { label: string; onPress: () => void }) {
+export function PillButton({ label, onPress, icon }: { label: string; onPress: () => void; icon?: keyof typeof Ionicons.glyphMap }) {
   return (
-    <Pressable onPress={onPress} style={styles.primaryButton}>
-      <Text style={styles.primaryButtonText}>{label}</Text>
+    <Pressable onPress={onPress} style={styles.pillButton}>
+      {icon ? <Ionicons name={icon} size={17} color={colors.onPrimary} /> : null}
+      <AppText variant="bodyMd" color={colors.onPrimary} style={styles.pillButtonText}>
+        {label}
+      </AppText>
     </Pressable>
   );
 }
 
 export function TabBar({ activeTab, onChange }: { activeTab: TabId; onChange: (tab: TabId) => void }) {
   const tabs: Array<{ id: TabId; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
-    { id: "dashboard", label: "Home", icon: "home-outline" },
-    { id: "activities", label: "Activities", icon: "heart-outline" },
-    { id: "gear", label: "Gear", icon: "footsteps-outline" },
-    { id: "goals", label: "Goals", icon: "flag-outline" },
-    { id: "profile", label: "Profile", icon: "person-outline" },
+    { id: "dashboard", label: "Home", icon: "home" },
+    { id: "activities", label: "Activities", icon: "pulse" },
+    { id: "gear", label: "Gear", icon: "footsteps" },
+    { id: "goals", label: "Goals", icon: "flag" },
+    { id: "profile", label: "Profile", icon: "person" },
   ];
 
   return (
     <SafeAreaView style={styles.tabBar}>
       {tabs.map((tab) => {
         const active = tab.id === activeTab;
+        const name = (active ? tab.icon : `${tab.icon}-outline`) as keyof typeof Ionicons.glyphMap;
         return (
-          <Pressable key={tab.id} onPress={() => onChange(tab.id)} style={[styles.tabItem, active ? styles.tabItemActive : null]}>
-            <Ionicons name={tab.icon} size={25} style={[styles.tabIcon, active ? styles.tabIconActive : null]} />
-            <Text style={[styles.tabLabel, active ? styles.tabLabelActive : null]}>{tab.label}</Text>
+          <Pressable key={tab.id} onPress={() => onChange(tab.id)} style={styles.tabItem}>
+            <Ionicons name={name} size={24} color={active ? colors.primary : colors.secondary} />
+            <AppText variant="caption" color={active ? colors.primary : colors.secondary} style={active ? styles.tabLabelActive : undefined}>
+              {tab.label}
+            </AppText>
           </Pressable>
         );
       })}
@@ -119,96 +244,86 @@ export function TabBar({ activeTab, onChange }: { activeTab: TabId; onChange: (t
   );
 }
 
-export const appPalette = palette;
+// Legacy palette retained for overlay forms that still reference flat tokens.
+export const appPalette = {
+  background: colors.background,
+  surface: colors.surfaceLowest,
+  surfaceMuted: colors.surfaceLow,
+  surfaceHigh: colors.surfaceHigh,
+  border: colors.surfaceContainer,
+  text: colors.onSurface,
+  muted: colors.secondary,
+  primary: colors.primary,
+  primaryFixed: colors.primaryFixed,
+  accent: colors.tertiary,
+};
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: palette.background,
+    backgroundColor: colors.background,
   },
   screenContent: {
-    gap: 20,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 112,
+    gap: space.lg,
+    paddingHorizontal: space.margin,
+    paddingTop: space.md,
+    paddingBottom: 120,
   },
-  pageHeader: {
+  header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginHorizontal: -16,
-    marginTop: -12,
-    paddingHorizontal: 20,
+    marginHorizontal: -space.margin,
+    marginTop: -space.md,
+    paddingHorizontal: space.lg,
     paddingVertical: 14,
     backgroundColor: "rgba(248,249,255,0.96)",
     borderBottomWidth: 1,
-    borderBottomColor: palette.border,
+    borderBottomColor: colors.surfaceContainer,
   },
   brand: {
-    color: palette.text,
-    fontSize: 20,
-    fontWeight: "700",
-    letterSpacing: -0.4,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
-  pageHeaderRight: {
+  headerRight: {
     alignItems: "center",
     flexDirection: "row",
-    gap: 12,
-  },
-  pageTitle: {
-    color: palette.text,
-    fontSize: 22,
-    fontWeight: "600",
+    gap: space.md,
   },
   avatar: {
     alignItems: "center",
-    backgroundColor: palette.primaryFixed,
+    backgroundColor: colors.primaryFixed,
     borderRadius: 18,
     height: 36,
     justifyContent: "center",
     width: 36,
   },
-  avatarText: {
-    color: palette.primary,
-    fontSize: 11,
-    fontWeight: "700",
+  card: {
+    backgroundColor: colors.surfaceLowest,
+    borderRadius: radius.xxl,
+    padding: space.base,
+    gap: space.md,
+    shadowColor: colors.onSurface,
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
-  heroCard: {
-    borderRadius: 16,
-    backgroundColor: palette.surface,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: palette.border,
+  pill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    alignSelf: "flex-start",
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
-  eyebrow: {
-    color: palette.muted,
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1.2,
-    marginBottom: 8,
+  pillText: {
+    letterSpacing: 0.6,
   },
-  heroTitle: {
-    color: palette.text,
-    fontSize: 24,
-    fontWeight: "700",
-  },
-  heroSubtitle: {
-    color: palette.muted,
-    marginTop: 6,
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  heroBody: {
-    marginTop: 16,
-    gap: 10,
-  },
-  sectionCard: {
-    borderRadius: 16,
-    backgroundColor: palette.surface,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: 16,
-    gap: 12,
+  track: {
+    width: "100%",
+    overflow: "hidden",
   },
   sectionHeader: {
     flexDirection: "row",
@@ -216,70 +331,71 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   sectionTitle: {
-    color: palette.text,
-    fontSize: 20,
-    fontWeight: "700",
+    fontFamily: "SpaceGrotesk-Bold",
   },
   sectionAction: {
-    color: palette.primary,
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  statRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: palette.surfaceMuted,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  statLabel: {
-    color: palette.muted,
-    fontSize: 14,
-  },
-  statValue: {
-    color: palette.text,
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  listItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    backgroundColor: palette.surfaceMuted,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
+    gap: 2,
   },
-  listTitle: {
-    color: palette.text,
-    fontSize: 16,
-    fontWeight: "600",
+  segment: {
+    flexDirection: "row",
+    backgroundColor: colors.surfaceHigh,
+    borderRadius: radius.pill,
+    padding: 4,
   },
-  listSubtitle: {
-    color: palette.muted,
-    fontSize: 13,
-    marginTop: 3,
-  },
-  listValue: {
-    color: palette.accent,
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  primaryButton: {
+  segmentItem: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: palette.primary,
-    borderRadius: 999,
+    borderRadius: radius.pill,
+    paddingVertical: 9,
+  },
+  segmentItemActive: {
+    backgroundColor: colors.surfaceLowest,
+    shadowColor: colors.onSurface,
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  chipRow: {
+    gap: 8,
+    paddingVertical: 2,
+  },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: colors.surfaceLowest,
+    borderRadius: radius.pill,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  chipActive: {
+    backgroundColor: colors.onSurface,
+  },
+  primaryButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: colors.primary,
+    borderRadius: radius.pill,
     minHeight: 54,
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 18,
   },
-  primaryButtonText: {
-    color: "#FFFDF7",
-    fontSize: 15,
-    fontWeight: "700",
+  pillButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: colors.primary,
+    borderRadius: radius.pill,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+  },
+  pillButtonText: {
+    fontFamily: "Hanken-SemiBold",
   },
   tabBar: {
     position: "absolute",
@@ -289,7 +405,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     backgroundColor: "rgba(248,249,255,0.96)",
     borderTopWidth: 1,
-    borderTopColor: palette.border,
+    borderTopColor: colors.surfaceContainer,
     paddingHorizontal: 8,
     paddingTop: 8,
   },
@@ -297,26 +413,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 8,
+    gap: 3,
     paddingVertical: 4,
   },
-  tabItemActive: {
-    backgroundColor: palette.surfaceMuted,
-  },
-  tabIcon: {
-    color: palette.muted,
-    height: 30,
-    lineHeight: 30,
-  },
-  tabIconActive: {
-    color: palette.primary,
-  },
-  tabLabel: {
-    color: palette.muted,
-    fontSize: 11,
-    fontWeight: "600",
-  },
   tabLabelActive: {
-    color: palette.primary,
+    fontFamily: "Hanken-SemiBold",
   },
 });
